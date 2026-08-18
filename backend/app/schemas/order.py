@@ -1,6 +1,8 @@
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
 
 
 # ============================================================
@@ -11,6 +13,15 @@ class OrderItemCreate(BaseModel):
     menu_item_id: int = Field(..., gt=0)
     quantity: int = Field(..., gt=0)
 
+
+class OrderStatus(str, Enum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    PREPARING = "PREPARING"
+    READY = "READY"
+    COMPLETED = "COMPLETED"
+    REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
 
 # ============================================================
 # CREATE PUBLIC ORDER
@@ -52,7 +63,7 @@ class OrderResponse(BaseModel):
     table_id: Optional[int]
 
     order_type: str
-    status: str
+    status: OrderStatus
 
     customer_name: Optional[str]
     customer_phone: Optional[str]
@@ -69,5 +80,5 @@ class OrderResponse(BaseModel):
 
 
 class OrderStatusUpdate(BaseModel):
-    status: str
+    status: OrderStatus
     rejection_reason: Optional[str] = None

@@ -1,0 +1,8 @@
+{
+  "name": "digiyum",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  }
+}
