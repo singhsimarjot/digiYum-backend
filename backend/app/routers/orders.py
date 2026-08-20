@@ -15,6 +15,7 @@ from app.schemas.order import (
     PublicOrderCreate,
     OrderResponse,
     OrderStatusUpdate,
+    OrderStatus,
 )
 
 from app.models.order_item import OrderItem
@@ -24,7 +25,12 @@ from app.models.order_item import OrderItem
 # use in your protected restaurant/category endpoints.
 from app.dependencies import get_current_user
 
-
+ORDER_STATUS_TRANSITIONS = {
+    OrderStatus.PENDING: OrderStatus.CONFIRMED,
+    OrderStatus.CONFIRMED: OrderStatus.PREPARING,
+    OrderStatus.PREPARING: OrderStatus.READY,
+    OrderStatus.READY: OrderStatus.COMPLETED,
+}
 
 # ============================================================
 # PUBLIC ORDERS
@@ -204,7 +210,7 @@ def create_public_order(
         restaurant_id=restaurant_id,
         table_id=table.id,
         order_type="TABLE",
-        status="PENDING",
+        status=OrderStatus.PENDING,
         customer_name=order_data.customer_name,
         customer_phone=order_data.customer_phone,
         notes=order_data.notes,

@@ -1,29 +1,89 @@
 import { useState } from "react";
-import { LayoutDashboard, UtensilsCrossed, ClipboardList, Bell, ChevronDown, Menu } from "lucide-react";
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
+  ClipboardList,
+  Bell,
+  ChevronDown,
+  Menu,
+} from "lucide-react";
+import {
+  BrowserRouter,
+  Navigate,
+  NavLink,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { MenuPage } from "../features/menu/MenuPage";
-import { OrdersPage, initOrders } from "../features/orders/OrdersPage";
+import { CategoriesPage } from "../features/menu/CategoriesPage";
+import { OrdersPage } from "../features/orders/OrdersPage";
 import { C } from "../features/shared/theme";
+import { isAuthenticated } from "../auth/auth";
+import LoginPage from "../features/auth/LoginPage";
+import { AppSidebar } from "../components/AppSidebar";
 
-type Page = "dashboard" | "menu" | "orders";
+type Page = "dashboard" | "menu" | "categories" | "orders";
 
-const NAV = [
-  { id: "dashboard" as Page, label: "Dashboard", icon: LayoutDashboard },
-  { id: "menu" as Page, label: "Menu", icon: UtensilsCrossed },
-  { id: "orders" as Page, label: "Orders", icon: ClipboardList },
+type NavItem = {
+  id: Page;
+  path: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+};
+
+const NAV: NavItem[] = [
+  { id: "dashboard", path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "categories", path: "/categories", label: "Categories", icon: UtensilsCrossed },
+  { id: "menu", path: "/menu", label: "Menu", icon: UtensilsCrossed }, 
+  { id: "orders", path: "/orders", label: "Orders", icon: ClipboardList },
 ];
 
-export default function App() {
-  const [page, setPage] = useState<Page>("dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const pendingCount = initOrders.filter((o) => o.status === "PENDING").length;
+const PAGE_META: Record<Page, { title: string; subtitle: string }> = {
+  dashboard: {
+    title: "Dashboard",
+    subtitle: "Saturday, 18 Aug 2026 · Dinner service",
+  },
+  categories: {
+    title: "Category Management",
+    subtitle: "Manage your menu categories",
+  },
+  menu: {
+    title: "Menu Management",
+    subtitle: "Manage your dishes and categories",
+  },
+  orders: {
+    title: "Live Orders",
+    subtitle: "Real-time order tracking",
+  },
+};
 
-  const pageTitle = { dashboard: "Dashboard", menu: "Menu Management", orders: "Live Orders" }[page];
-  const pageSubtitle = {
-    dashboard: "Saturday, 18 Aug 2026 · Dinner service",
-    menu: "Manage your dishes and categories",
-    orders: "Real-time order tracking",
-  }[page];
+function AppShell() {
+  const [authenticated, setAuthenticated] = useState(isAuthenticated());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const pendingCount = 0;
+
+  const currentPage =
+    location.pathname === "/menu"
+      ? "menu"
+      : location.pathname === "/categories"
+        ? "categories"
+        : location.pathname === "/orders"
+          ? "orders"
+          : "dashboard";
+
+  const { title, subtitle } = PAGE_META[currentPage];
+
+  if (!authenticated) {
+    return <LoginPage onLogin={() => {
+      setAuthenticated(true);
+      navigate("/dashboard");
+    }} />;
+  }
 
   return (
     <div className="min-h-screen flex" style={{ background: C.bg, fontFamily: "'DM Sans', sans-serif" }}>
@@ -37,61 +97,13 @@ export default function App() {
         .page-enter { animation: fadeIn 0.25s ease both; }
       `}</style>
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
-        style={{ width: 220, background: C.sidebar, minHeight: "100vh" }}
-      >
-        <div className="px-5 py-6 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #E63946, #c0293a)" }}>
-            <span className="text-base">🍽</span>
-          </div>
-          <div>
-            <div className="text-sm font-bold text-white" style={{ fontFamily: "'DM Serif Display', serif" }}>Saveur</div>
-            <div className="text-[10px] font-medium" style={{ color: "#64748B" }}>Owner Portal</div>
-          </div>
-        </div>
-
-        <nav className="flex-1 px-3 flex flex-col gap-1">
-          <div className="text-[9px] font-bold tracking-widest uppercase px-2 mb-2" style={{ color: "#475569" }}>Main Menu</div>
-          {NAV.map(({ id, label, icon: Icon }) => {
-            const active = page === id;
-            return (
-              <button
-                key={id}
-                onClick={() => {
-                  setPage(id);
-                  setSidebarOpen(false);
-                }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left transition-all relative"
-                style={{ background: active ? C.sidebarActive : "transparent", color: active ? "white" : "#94A3B8" }}
-              >
-                <Icon size={16} />
-                <span className="text-sm font-medium">{label}</span>
-                {id === "orders" && pendingCount > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center" style={{ background: C.red, color: "white" }}>
-                    {pendingCount}
-                  </span>
-                )}
-                {active && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-l-full" style={{ background: C.red }} />}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="px-4 py-4 border-t flex items-center gap-2" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background: C.red + "40", color: C.red }}>
-            A
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-white truncate">Arjun Mehta</div>
-            <div className="text-[10px]" style={{ color: "#64748B" }}>Restaurant Owner</div>
-          </div>
-        </div>
-      </aside>
+      <AppSidebar
+        navItems={NAV}
+        currentPage={currentPage}
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        pendingCount={pendingCount}
+      />
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b px-4 lg:px-6 py-3 flex items-center justify-between gap-3 sticky top-0 z-20" style={{ borderColor: C.border }}>
@@ -100,8 +112,8 @@ export default function App() {
               <Menu size={18} style={{ color: C.muted }} />
             </button>
             <div>
-              <h1 className="text-base font-bold leading-tight" style={{ color: C.text }}>{pageTitle}</h1>
-              <p className="text-xs hidden sm:block" style={{ color: C.muted }}>{pageSubtitle}</p>
+              <h1 className="text-base font-bold leading-tight" style={{ color: C.text }}>{title}</h1>
+              <p className="text-xs hidden sm:block" style={{ color: C.muted }}>{subtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -118,12 +130,25 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-6 page-enter" key={page}>
-          {page === "dashboard" && <DashboardPage />}
-          {page === "menu" && <MenuPage />}
-          {page === "orders" && <OrdersPage />}
+        <main className="flex-1 p-4 lg:p-6 page-enter">
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/menu" element={<MenuPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </main>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
   );
 }

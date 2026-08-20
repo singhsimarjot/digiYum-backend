@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from enum import Enum
 from typing import List, Optional
 
@@ -29,7 +31,6 @@ class OrderStatus(str, Enum):
 
 class PublicOrderCreate(BaseModel):
     public_token: str = Field(..., min_length=1)
-
     items: List[OrderItemCreate]
 
     customer_name: Optional[str] = None
@@ -51,7 +52,6 @@ class OrderItemResponse(BaseModel):
 
     class Config:
         orm_mode = True
-
 
 # ============================================================
 # ORDER RESPONSE
