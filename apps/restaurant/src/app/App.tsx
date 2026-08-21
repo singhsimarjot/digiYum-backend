@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -10,7 +10,6 @@ import {
 import {
   BrowserRouter,
   Navigate,
-  NavLink,
   Route,
   Routes,
   useLocation,
@@ -20,12 +19,17 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { MenuPage } from "../features/menu/MenuPage";
 import { CategoriesPage } from "../features/menu/CategoriesPage";
 import { OrdersPage } from "../features/orders/OrdersPage";
+import { RestaurantSettingsPage } from "../features/settings/RestaurantSettingsPage";
 import { C } from "../features/shared/theme";
 import { isAuthenticated } from "../auth/auth";
 import LoginPage from "../features/auth/LoginPage";
 import { AppSidebar } from "../components/AppSidebar";
+import { AppHeader } from "../components/AppHeader";
+import { AppProvider, useAppSession } from "../context/AppContext";
 
 type Page = "dashboard" | "menu" | "categories" | "orders";
+
+
 
 type NavItem = {
   id: Page;
@@ -41,31 +45,23 @@ const NAV: NavItem[] = [
   { id: "orders", path: "/orders", label: "Orders", icon: ClipboardList },
 ];
 
-const PAGE_META: Record<Page, { title: string; subtitle: string }> = {
-  dashboard: {
-    title: "Dashboard",
-    subtitle: "Saturday, 18 Aug 2026 · Dinner service",
-  },
-  categories: {
-    title: "Category Management",
-    subtitle: "Manage your menu categories",
-  },
-  menu: {
-    title: "Menu Management",
-    subtitle: "Manage your dishes and categories",
-  },
-  orders: {
-    title: "Live Orders",
-    subtitle: "Real-time order tracking",
-  },
-};
+
 
 function AppShell() {
   const [authenticated, setAuthenticated] = useState(isAuthenticated());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshSession, clearSession } = useAppSession();
   const pendingCount = 0;
+
+  useEffect(() => {
+    if (authenticated) {
+      refreshSession();
+    } else {
+      clearSession();
+    }
+  }, [authenticated, refreshSession, clearSession]);
 
   const currentPage =
     location.pathname === "/menu"
@@ -74,13 +70,15 @@ function AppShell() {
         ? "categories"
         : location.pathname === "/orders"
           ? "orders"
-          : "dashboard";
+          : location.pathname === "/settings"
+            ? "dashboard"
+            : "dashboard";
 
-  const { title, subtitle } = PAGE_META[currentPage];
 
   if (!authenticated) {
-    return <LoginPage onLogin={() => {
+    return <LoginPage onLogin={async () => {
       setAuthenticated(true);
+      await refreshSession();
       navigate("/dashboard");
     }} />;
   }
@@ -106,29 +104,11 @@ function AppShell() {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b px-4 lg:px-6 py-3 flex items-center justify-between gap-3 sticky top-0 z-20" style={{ borderColor: C.border }}>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100">
-              <Menu size={18} style={{ color: C.muted }} />
-            </button>
-            <div>
-              <h1 className="text-base font-bold leading-tight" style={{ color: C.text }}>{title}</h1>
-              <p className="text-xs hidden sm:block" style={{ color: C.muted }}>{subtitle}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="relative w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors">
-              <Bell size={16} style={{ color: C.muted }} />
-              {pendingCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: C.red }} />}
-            </button>
-            <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: C.red + "20", color: C.red }}>
-                A
-              </div>
-              <ChevronDown size={14} style={{ color: C.muted }} />
-            </button>
-          </div>
-        </header>
+        <AppHeader
+        currentPage={currentPage}
+          onMenuToggle={() => setSidebarOpen(true)}
+          pendingCount={pendingCount}
+        />
 
         <main className="flex-1 p-4 lg:p-6 page-enter">
           <Routes>
@@ -137,6 +117,7 @@ function AppShell() {
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/settings" element={<RestaurantSettingsPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
@@ -148,7 +129,9 @@ function AppShell() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppShell />
+      <AppProvider>
+        <AppShell />
+      </AppProvider>
     </BrowserRouter>
   );
 }

@@ -1,5 +1,6 @@
 import { NavLink } from "react-router";
 import { C } from "../features/shared/theme";
+import { useAppSession } from "../context/AppContext";
 
 export type SidebarNavItem = {
   id: string;
@@ -23,6 +24,8 @@ export function AppSidebar({
   onClose,
   pendingCount = 0,
 }: AppSidebarProps) {
+  const { session } = useAppSession();
+
   return (
     <>
       {sidebarOpen && (
@@ -40,17 +43,21 @@ export function AppSidebar({
       >
         <div className="px-5 py-6 flex items-center gap-3">
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
             style={{ background: "linear-gradient(135deg, #E63946, #c0293a)" }}
           >
-            <span className="text-base">🍽</span>
+            {session.restaurantLogo ? (
+              <img src={session.restaurantLogo} alt={session.restaurantName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-base">🍽</span>
+            )}
           </div>
           <div>
             <div
-              className="text-sm font-bold text-white"
+              className="text-sm font-bold text-white truncate max-w-[110px]"
               style={{ fontFamily: "'DM Serif Display', serif" }}
             >
-              Saveur
+              {session.restaurantName}
             </div>
             <div className="text-[10px] font-medium" style={{ color: "#64748B" }}>
               Owner Portal
@@ -101,23 +108,6 @@ export function AppSidebar({
           })}
         </nav>
 
-        <div
-          className="px-4 py-4 border-t flex items-center gap-2"
-          style={{ borderColor: "rgba(255,255,255,0.06)" }}
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-            style={{ background: C.red + "40", color: C.red }}
-          >
-            A
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-white truncate">Arjun Mehta</div>
-            <div className="text-[10px]" style={{ color: "#64748B" }}>
-              Restaurant Owner
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );

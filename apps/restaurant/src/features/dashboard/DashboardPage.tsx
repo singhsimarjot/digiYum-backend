@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -47,6 +47,7 @@ import {
   Cell,
 } from "recharts";
 import { C } from "../shared/theme";
+import { getDashboardSummary, type DashboardResponse } from "../../api/dashboard";
 
 const revenueData = [
   { day: "Mon", revenue: 2840, orders: 34 },
@@ -107,14 +108,69 @@ function StatCard({ label, value, sub, trend, icon: Icon, color }: {
 }
 
 export function DashboardPage() {
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      try {
+        const data = await getDashboardSummary();
+        if (isMounted) {
+          setDashboardData(data);
+        }
+      } catch {
+        if (isMounted) {
+          setDashboardData(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const summary = useMemo(() => {
+    const stats = dashboardData?.stats ?? {
+      categories: 0,
+      menu_items: 0,
+      active_menu_items: 0,
+    };
+
+    return {
+      revenue: "$5,842",
+      orders: dashboardData ? String(stats.menu_items || 0) : "68",
+      avgOrder: "$24.30",
+      covers: dashboardData ? String(stats.active_menu_items || 0) : "142",
+      revenueSub: dashboardData ? `${stats.menu_items || 0} items in menu` : "68 orders completed",
+      ordersSub: dashboardData ? `${stats.active_menu_items || 0} active items` : "12 pending right now",
+      avgSub: dashboardData ? `${stats.categories || 0} categories` : "Per customer spend",
+      coversSub: dashboardData ? "Available menu items" : "Dine-in guests served",
+    };
+  }, [dashboardData]);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Today's Revenue" value="$5,842" sub="68 orders completed" trend={14} icon={DollarSign} color={C.red} />
-        <StatCard label="Total Orders" value="68" sub="12 pending right now" trend={8} icon={ClipboardList} color={C.orange} />
-        <StatCard label="Avg Order Value" value="$24.30" sub="Per customer spend" trend={-2} icon={TrendingUp} color="#8B5CF6" />
-        <StatCard label="Covers Today" value="142" sub="Dine-in guests served" trend={5} icon={Users} color={C.green} />
+        <StatCard label="Today's Revenue" value={summary.revenue} sub={summary.revenueSub} trend={14} icon={DollarSign} color={C.red} />
+        <StatCard label="Total Orders" value={summary.orders} sub={summary.ordersSub} trend={8} icon={ClipboardList} color={C.orange} />
+        <StatCard label="Avg Order Value" value={summary.avgOrder} sub={summary.avgSub} trend={-2} icon={TrendingUp} color="#8B5CF6" />
+        <StatCard label="Covers Today" value={summary.covers} sub={summary.coversSub} trend={5} icon={Users} color={C.green} />
       </div>
+
+      {loading && dashboardData === null && (
+        <div className="text-xs text-muted" style={{ color: C.muted }}>
+          Loading dashboard data…
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border }}>

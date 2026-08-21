@@ -7,6 +7,7 @@ from app.schemas.user import (
     LoginRequest,
     TokenResponse,
     UserCreate,
+    UserProfileUpdate,
     UserResponse,
 )
 from app.utils.security import (
@@ -113,4 +114,31 @@ def login(
 def get_me(
     current_user: User = Depends(get_current_user),
 ):
+    return current_user
+
+
+@router.patch(
+    "/me",
+    response_model=UserResponse,
+)
+def update_me(
+    user_data: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    first_name = user_data.first_name.strip()
+    last_name = user_data.last_name.strip()
+
+    if not first_name or not last_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="First name and last name are required",
+        )
+
+    current_user.first_name = first_name
+    current_user.last_name = last_name
+
+    db.commit()
+    db.refresh(current_user)
+
     return current_user

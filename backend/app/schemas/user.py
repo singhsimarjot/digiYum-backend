@@ -25,6 +25,11 @@ class UserResponse(BaseModel):
     }
 
 
+class UserProfileUpdate(BaseModel):
+    first_name: str
+    last_name: str
+
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
